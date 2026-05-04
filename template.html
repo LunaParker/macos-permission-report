@@ -1,0 +1,583 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>macOS Privacy Audit</title>
+<style>
+  :root {
+    --bg: #f4f5f7;
+    --card: #ffffff;
+    --text: #1a1a2e;
+    --muted: #6b7280;
+    --border: #e5e7eb;
+    --critical: #dc2626;
+    --critical-bg: #fef2f2;
+    --high: #ea580c;
+    --high-bg: #fff7ed;
+    --moderate: #d97706;
+    --moderate-bg: #fffbeb;
+    --ok: #059669;
+    --ok-bg: #ecfdf5;
+    --ghost: #7c3aed;
+    --ghost-bg: #f5f3ff;
+    --header-from: #0f172a;
+    --header-to: #1e293b;
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Text', 'Segoe UI', system-ui, sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    line-height: 1.5;
+    -webkit-font-smoothing: antialiased;
+  }
+
+  header {
+    background: linear-gradient(135deg, var(--header-from), var(--header-to));
+    color: #fff;
+    padding: 2.5rem 2rem 2rem;
+  }
+  header h1 { font-size: 1.75rem; font-weight: 700; letter-spacing: -0.02em; }
+  header .subtitle { color: #94a3b8; font-size: 0.875rem; margin-top: 0.25rem; }
+
+  .container { max-width: 1100px; margin: 0 auto; padding: 0 1.5rem; }
+  .container.has-alerts { padding-top: 1.5rem; }
+
+  /* ── Alert Banners ── */
+  .alert-banner {
+    background: linear-gradient(135deg, #991b1b, #b91c1c);
+    color: #fff;
+    border-radius: 10px;
+    padding: 1.25rem 1.5rem;
+    margin-bottom: 1rem;
+    display: flex;
+    gap: 1rem;
+    align-items: flex-start;
+    box-shadow: 0 4px 16px rgba(185, 28, 28, 0.35);
+    position: relative;
+    z-index: 1;
+  }
+  .alert-banner .alert-icon {
+    font-size: 1.75rem;
+    line-height: 1;
+    flex-shrink: 0;
+    filter: drop-shadow(0 1px 2px rgba(0,0,0,0.2));
+  }
+  .alert-banner .alert-type {
+    font-size: 0.7rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    opacity: 0.8;
+    margin-bottom: 0.15rem;
+  }
+  .alert-banner .alert-title {
+    font-size: 1.05rem;
+    font-weight: 700;
+  }
+  .alert-banner .alert-desc {
+    font-size: 0.85rem;
+    margin-top: 0.4rem;
+    opacity: 0.92;
+    line-height: 1.55;
+  }
+  .alert-banner .alert-perms {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 5px;
+    margin-top: 0.6rem;
+  }
+  .alert-banner .alert-perm-chip {
+    background: rgba(255,255,255,0.18);
+    padding: 2px 10px;
+    border-radius: 4px;
+    font-size: 0.75rem;
+    font-weight: 600;
+  }
+
+  /* ── Summary Dashboard ── */
+  .dashboard {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+    gap: 0.875rem;
+    margin: -1.5rem 0 1.75rem;
+    position: relative;
+    z-index: 0;
+  }
+  .has-alerts .dashboard { margin-top: 1rem; }
+
+  .stat-card {
+    background: var(--card);
+    border-radius: 10px;
+    padding: 1.1rem 1.25rem;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.08), 0 4px 12px rgba(0,0,0,0.04);
+    border-top: 3px solid var(--border);
+  }
+  .stat-card .label { font-size: 0.75rem; color: var(--muted); text-transform: uppercase; letter-spacing: 0.04em; font-weight: 600; }
+  .stat-card .value { font-size: 1.75rem; font-weight: 700; margin-top: 0.15rem; }
+  .stat-card.critical { border-top-color: var(--critical); }
+  .stat-card.critical .value { color: var(--critical); }
+  .stat-card.high { border-top-color: var(--high); }
+  .stat-card.high .value { color: var(--high); }
+  .stat-card.ok { border-top-color: var(--ok); }
+  .stat-card.ok .value { color: var(--ok); }
+  .stat-card.ghost { border-top-color: var(--ghost); }
+  .stat-card.ghost .value { color: var(--ghost); }
+
+  /* ── System DB warning ── */
+  .sysdb-warn {
+    background: var(--moderate-bg);
+    border: 1px solid #fbbf24;
+    border-radius: 8px;
+    padding: 0.75rem 1.25rem;
+    margin-bottom: 1.25rem;
+    font-size: 0.85rem;
+    color: #92400e;
+  }
+
+  /* ── Section cards ── */
+  .section {
+    background: var(--card);
+    border-radius: 10px;
+    margin-bottom: 1.25rem;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.06);
+    overflow: hidden;
+  }
+  .section-header {
+    padding: 1rem 1.5rem;
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    cursor: pointer;
+    user-select: none;
+    border-bottom: 1px solid transparent;
+    transition: border-color 0.15s;
+  }
+  .section.open .section-header { border-bottom-color: var(--border); }
+  .section-header .icon {
+    width: 32px; height: 32px; border-radius: 8px;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 1rem; flex-shrink: 0;
+  }
+  .section-header h2 { font-size: 1rem; font-weight: 600; flex: 1; }
+  .section-header .count { font-size: 0.8rem; color: var(--muted); font-weight: 500; }
+  .section-header .chevron { color: var(--muted); transition: transform 0.2s; font-size: 0.8rem; }
+  .section.open .section-header .chevron { transform: rotate(90deg); }
+  .section-body { display: none; padding: 0; }
+  .section.open .section-body { display: block; }
+
+  /* ── Threat descriptions ── */
+  .threat-info {
+    padding: 1rem 1.25rem;
+    background: #f8fafc;
+    border-bottom: 1px solid var(--border);
+    font-size: 0.85rem;
+    line-height: 1.65;
+    color: #475569;
+  }
+  .threat-info strong { color: var(--text); }
+  .threat-malicious {
+    margin-top: 0.6rem;
+    padding: 0.7rem 1rem;
+    background: var(--critical-bg);
+    border-radius: 6px;
+    border-left: 3px solid var(--critical);
+    color: #991b1b;
+    font-size: 0.83rem;
+  }
+  .threat-malicious strong { color: #7f1d1d; }
+
+  /* ── Tables ── */
+  table { width: 100%; border-collapse: collapse; font-size: 0.875rem; }
+  th {
+    text-align: left; padding: 0.6rem 1.25rem; color: var(--muted);
+    font-weight: 600; font-size: 0.75rem; text-transform: uppercase;
+    letter-spacing: 0.04em; background: #f9fafb;
+  }
+  td { padding: 0.65rem 1.25rem; border-top: 1px solid var(--border); vertical-align: top; }
+  tr:hover td { background: #f9fafb; }
+  .app-name { font-weight: 600; }
+  .bundle-id {
+    font-family: 'SF Mono', 'Fira Code', Menlo, monospace;
+    font-size: 0.72rem; color: var(--muted); word-break: break-all;
+  }
+
+  /* ── Badges with tooltips ── */
+  .badge {
+    display: inline-flex; align-items: center; gap: 4px;
+    padding: 2px 10px; border-radius: 999px;
+    font-size: 0.75rem; font-weight: 600; white-space: nowrap;
+    position: relative; cursor: help;
+  }
+  .badge::before {
+    content: ''; width: 6px; height: 6px; border-radius: 50%;
+  }
+  .badge.ok { background: var(--ok-bg); color: var(--ok); }
+  .badge.ok::before { background: var(--ok); }
+  .badge.moderate { background: var(--moderate-bg); color: var(--moderate); }
+  .badge.moderate::before { background: var(--moderate); }
+  .badge.concern { background: var(--critical-bg); color: var(--critical); }
+  .badge.concern::before { background: var(--critical); }
+
+  /* Tooltip via ::after */
+  .badge[data-tip]:hover::after {
+    content: attr(data-tip);
+    position: absolute;
+    bottom: calc(100% + 8px);
+    left: 50%;
+    transform: translateX(-50%);
+    background: var(--text);
+    color: #fff;
+    padding: 8px 12px;
+    border-radius: 8px;
+    font-size: 0.78rem;
+    font-weight: 400;
+    white-space: normal;
+    width: max-content;
+    max-width: 320px;
+    line-height: 1.45;
+    z-index: 100;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.2);
+    pointer-events: none;
+  }
+  .badge[data-tip]:hover::before {
+    content: ''; width: 0; height: 0;
+    position: absolute;
+    bottom: calc(100% + 4px);
+    left: 50%; transform: translateX(-50%);
+    border: 5px solid transparent;
+    border-top-color: var(--text);
+    z-index: 101;
+    border-radius: 0;
+    background: none;
+  }
+
+  /* ── Privilege Concentration ── */
+  .conc-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+    gap: 0.75rem;
+    padding: 1.25rem;
+  }
+  .conc-card {
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 0.875rem 1rem;
+  }
+  .conc-card .conc-name {
+    font-weight: 600; font-size: 0.9rem; margin-bottom: 0.4rem;
+    display: flex; align-items: center; gap: 0.5rem;
+  }
+  .conc-card .conc-perms { display: flex; flex-wrap: wrap; gap: 4px; }
+  .perm-chip {
+    font-size: 0.7rem; padding: 2px 8px; border-radius: 4px; font-weight: 500;
+  }
+  .perm-chip.critical { background: var(--critical-bg); color: var(--critical); }
+  .perm-chip.high { background: var(--high-bg); color: var(--high); }
+  .perm-chip.medium { background: #f0f9ff; color: #0369a1; }
+
+  /* ── Ghost section ── */
+  .ghost-banner {
+    background: var(--ghost-bg);
+    border: 1px solid #ddd6fe;
+    border-radius: 8px;
+    padding: 1rem 1.25rem;
+    margin: 0 1.25rem 0.75rem;
+    font-size: 0.85rem;
+    color: #5b21b6;
+  }
+  .ghost-banner strong { color: #4c1d95; }
+  .ghost-table .app-name { color: var(--ghost); }
+
+  /* ── Recommendations ── */
+  .rec-list { padding: 1.25rem 1.5rem; }
+  .rec-item {
+    display: flex; gap: 0.75rem; padding: 0.75rem 0;
+    border-bottom: 1px solid var(--border);
+    font-size: 0.875rem;
+  }
+  .rec-item:last-child { border-bottom: none; }
+  .rec-num {
+    width: 24px; height: 24px; border-radius: 50%;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 0.75rem; font-weight: 700; flex-shrink: 0;
+  }
+  .rec-item.action .rec-num { background: var(--critical-bg); color: var(--critical); }
+  .rec-item.review .rec-num { background: var(--moderate-bg); color: var(--moderate); }
+  .rec-item.info .rec-num { background: #f0f9ff; color: #0369a1; }
+  .rec-item strong { font-weight: 600; }
+
+  code {
+    font-family: 'SF Mono', 'Fira Code', Menlo, monospace;
+    font-size: 0.8em; background: #f1f5f9; padding: 1px 5px; border-radius: 4px;
+  }
+
+  footer {
+    text-align: center; padding: 2rem 0 3rem;
+    font-size: 0.8rem; color: var(--muted);
+  }
+
+  .icon-critical { background: var(--critical-bg); color: var(--critical); }
+  .icon-high { background: var(--high-bg); color: var(--high); }
+  .icon-medium { background: #f0f9ff; color: #0369a1; }
+  .icon-ghost { background: var(--ghost-bg); color: var(--ghost); }
+  .icon-rec { background: var(--ok-bg); color: var(--ok); }
+
+  .empty-note {
+    padding: 1.5rem 1.25rem;
+    color: var(--muted);
+    font-style: italic;
+    text-align: center;
+  }
+
+  @media (max-width: 640px) {
+    header { padding: 1.5rem 1rem 1rem; }
+    .container { padding: 0 0.75rem; }
+    .dashboard { grid-template-columns: repeat(2, 1fr); }
+    .conc-grid { grid-template-columns: 1fr; }
+    th, td { padding: 0.5rem 0.75rem; }
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="container">
+    <h1>macOS Privacy Permission Audit</h1>
+    <div class="subtitle">Generated dynamically &middot; {{ sys_info.product_name }} {{ sys_info.product_version }} ({{ sys_info.build_version }}) &middot; {{ sys_info.arch }}</div>
+  </div>
+</header>
+
+<div class="container{% if alerts %} has-alerts{% endif %}">
+
+  {# ── Alert Banners ─────────────────────────────────────────────── #}
+  {% for alert in alerts %}
+  <div class="alert-banner">
+    <div class="alert-icon">&#9888;&#65039;</div>
+    <div>
+      <div class="alert-type">{{ alert.type }}</div>
+      <div class="alert-title">{{ alert.name }} has active permissions</div>
+      <div class="alert-desc">{{ alert.description }}</div>
+      <div class="alert-perms">
+        {% for perm in alert.active_permissions %}
+        <span class="alert-perm-chip">{{ perm }}</span>
+        {% endfor %}
+      </div>
+    </div>
+  </div>
+  {% endfor %}
+
+  {# ── Dashboard ─────────────────────────────────────────────────── #}
+  <div class="dashboard">
+    <div class="stat-card critical">
+      <div class="label">Critical Grants</div>
+      <div class="value">{{ stats.critical_grants }}</div>
+    </div>
+    <div class="stat-card high">
+      <div class="label">Sensor Grants</div>
+      <div class="value">{{ stats.sensor_grants }}</div>
+    </div>
+    <div class="stat-card ok">
+      <div class="label">Apps with Grants</div>
+      <div class="value">{{ stats.installed_apps }}</div>
+    </div>
+    <div class="stat-card ghost">
+      <div class="label">Ghost Entries</div>
+      <div class="value">{{ stats.ghost_entries }}</div>
+    </div>
+  </div>
+
+  {% if not system_db_readable %}
+  <div class="sysdb-warn">
+    <strong>&#9888; System TCC database was not readable.</strong>
+    Critical categories (Full Disk Access, Accessibility, Screen Recording, Input Monitoring)
+    are missing from this report. Run from Terminal (which has Full Disk Access) or use
+    <code>sudo</code> to include them.
+  </div>
+  {% endif %}
+
+  {# ── Privilege Concentration ────────────────────────────────────── #}
+  {% if concentration %}
+  <div class="section open">
+    <div class="section-header" onclick="this.parentElement.classList.toggle('open')">
+      <div class="icon icon-critical">!!</div>
+      <h2>Highest Privilege Concentration</h2>
+      <span class="count">Apps holding 3+ dangerous permissions</span>
+      <span class="chevron">&#9654;</span>
+    </div>
+    <div class="section-body">
+      <div class="conc-grid">
+        {% for app in concentration %}
+        <div class="conc-card">
+          <div class="conc-name">
+            {{ app.name }}
+            <span class="badge {{ app.assessment }}" data-tip="{{ app.assessment_reason }}">{{ app.assessment_label }}</span>
+          </div>
+          <div class="conc-perms">
+            {% for perm in app.perms %}
+            <span class="perm-chip {{ perm.risk }}">{{ perm.name }}</span>
+            {% endfor %}
+          </div>
+        </div>
+        {% endfor %}
+      </div>
+    </div>
+  </div>
+  {% endif %}
+
+  {# ── Permission Category Sections ──────────────────────────────── #}
+  {% for cat in categories %}
+  {% if cat.apps | length > 0 %}
+  <div class="section{% if cat.risk_level == 'critical' and loop.first %} open{% endif %}">
+    <div class="section-header" onclick="this.parentElement.classList.toggle('open')">
+      <div class="icon icon-{{ cat.risk_level }}">{{ cat.icon | safe }}</div>
+      <h2>{{ cat.name }}</h2>
+      <span class="count">{{ cat.count }} app{{ 's' if cat.count != 1 else '' }}{% if cat.subtitle %} &middot; {{ cat.subtitle }}{% endif %}</span>
+      <span class="chevron">&#9654;</span>
+    </div>
+    <div class="section-body">
+      {# Threat description #}
+      <div class="threat-info">
+        <strong>What this permission grants:</strong> {{ cat.what_it_does | safe }}
+        <div class="threat-malicious">
+          <strong>If a bad actor had this permission:</strong> {{ cat.if_malicious | safe }}
+        </div>
+      </div>
+
+      <table>
+        <thead>
+          <tr>
+            <th>App</th>
+            {% for col in cat.get('extra_columns', []) %}
+            <th>{{ col.header }}</th>
+            {% endfor %}
+            <th>Assessment</th>
+            <th>Notes</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for app in cat.apps %}
+          <tr>
+            <td>
+              <div class="app-name">{{ app.name }}</div>
+              <div class="bundle-id">{{ app.bundle_id }}</div>
+            </td>
+            {% for col in cat.get('extra_columns', []) %}
+            <td>{{ app.extra.get(col.key, '') }}</td>
+            {% endfor %}
+            <td>
+              <span class="badge {{ app.assessment }}" data-tip="{{ app.assessment_reason }}">{{ app.assessment_label }}</span>
+            </td>
+            <td>{{ app.notes }}</td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+  {% endif %}
+  {% endfor %}
+
+  {# ── Ghost Permissions ──────────────────────────────────────────── #}
+  {% if ghosts %}
+  <div class="section open">
+    <div class="section-header" onclick="this.parentElement.classList.toggle('open')">
+      <div class="icon icon-ghost">&#128123;</div>
+      <h2>Ghost Permissions</h2>
+      <span class="count">{{ ghosts | length }} uninstalled app{{ 's' if ghosts | length != 1 else '' }} still holding allowed permissions</span>
+      <span class="chevron">&#9654;</span>
+    </div>
+    <div class="section-body">
+      <div class="ghost-banner">
+        <strong>These apps are no longer installed</strong> but still have <em>allowed</em>
+        permissions in your TCC database. If any of these bundle IDs were reused by
+        malware, it would inherit these permissions silently. They should be revoked via
+        <strong>System Settings &rarr; Privacy &amp; Security</strong> or
+        <code>tccutil reset All &lt;bundle-id&gt;</code>.
+      </div>
+      <table class="ghost-table">
+        <thead><tr><th>App</th><th>Residual Permissions</th><th>Risk</th></tr></thead>
+        <tbody>
+          {% for ghost in ghosts %}
+          <tr>
+            <td>
+              <div class="app-name">{{ ghost.name }}</div>
+              <div class="bundle-id">{{ ghost.bundle_id }}</div>
+            </td>
+            <td>
+              {% for perm in ghost.permissions %}
+              <span class="perm-chip {{ perm.risk }}">{{ perm.name }}</span>
+              {% endfor %}
+            </td>
+            <td><span class="badge {{ ghost.risk_class }}">{{ ghost.risk_label }}</span></td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+  {% endif %}
+
+  {# ── Recommendations ────────────────────────────────────────────── #}
+  <div class="section open">
+    <div class="section-header" onclick="this.parentElement.classList.toggle('open')">
+      <div class="icon icon-rec">&#10003;</div>
+      <h2>Recommendations</h2>
+      <span class="chevron">&#9654;</span>
+    </div>
+    <div class="section-body">
+      <div class="rec-list">
+        {% if ghosts %}
+        <div class="rec-item action">
+          <div class="rec-num">1</div>
+          <div><strong>Purge ghost permissions.</strong>
+            {{ ghosts | length }} uninstalled app{{ 's' if ghosts | length != 1 else '' }}
+            retain{{ '' if ghosts | length != 1 else 's' }} allowed access to critical categories.
+            Open <strong>System Settings &rarr; Privacy &amp; Security</strong> and remove each
+            ghost entry, or run <code>tccutil reset All &lt;bundle-id&gt;</code> for each.</div>
+        </div>
+        {% endif %}
+
+        {% if alerts %}
+        <div class="rec-item action">
+          <div class="rec-num">2</div>
+          <div><strong>Revoke invasive software permissions when not in use.</strong>
+            {% for alert in alerts %}{{ alert.name }}{% if not loop.last %}, {% endif %}{% endfor %}
+            hold{{ '' if alerts | length != 1 else 's' }} active surveillance permissions
+            (Camera + Microphone + Screen Recording). Toggle these off in System Settings
+            between sessions.</div>
+        </div>
+        {% endif %}
+
+        <div class="rec-item review">
+          <div class="rec-num">{{ 3 if (ghosts and alerts) else (2 if (ghosts or alerts) else 1) }}</div>
+          <div><strong>Review all "Review"-badged entries.</strong> These permissions serve real
+            features but grant broader access than strictly necessary. Hover over each badge for
+            a specific explanation of why it was flagged. Consider whether you actively use the
+            feature that requires the permission.</div>
+        </div>
+
+        <div class="rec-item info">
+          <div class="rec-num">{{ 4 if (ghosts and alerts) else (3 if (ghosts or alerts) else 2) }}</div>
+          <div><strong>Re-run this audit periodically.</strong> macOS does not auto-revoke
+            permissions when apps are uninstalled. Run this report after any major app cleanup,
+            or quarterly as a hygiene check.</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<footer>
+  <div class="container">
+    Source: TCC databases (user &amp; system) &middot; Spotlight app index &middot; plistlib<br>
+    Scope: Allowed grants only &middot; Denied entries excluded &middot; Apple system daemons excluded
+  </div>
+</footer>
+
+</body>
+</html>
