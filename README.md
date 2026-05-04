@@ -21,6 +21,36 @@ Each category in the report includes:
 - The list of currently-granted apps, with friendly names resolved from bundle IDs.
 - A per-row risk indicator and the source database (user-level vs. system-level).
 
+## Install and run
+
+```bash
+# Clone
+git clone https://github.com/LunaParker/macos-permission-report.git
+cd macos-permission-report
+
+# Set up a virtual environment (recommended)
+python3 -m venv venv
+source venv/bin/activate
+
+# Install the one dependency
+pip install -r requirements.txt
+
+# Run
+python generate_report.py
+```
+
+By default the report is written to `~/Downloads/privacy_audit.html`. Override with `--output`:
+
+```bash
+python generate_report.py --output ./report.html
+```
+
+Then open the file in your browser:
+
+```bash
+open ~/Downloads/privacy_audit.html
+```
+
 ## Why I built it
 
 I'm a security-spec'd CS student, and I wanted to know what was actually granted on my own Mac without trusting Settings → Privacy & Security to be exhaustive. Once I'd written the TCC reader I noticed the ghost-entry behaviour, which Settings doesn't expose at all. That seemed worth surfacing properly.
@@ -56,36 +86,6 @@ The key table in each database is `access`. The columns this tool reads are:
 3. **For each grant**, classify by service into one of the eight categories, look up the friendly name (or fall back to the raw bundle ID / path), and assign a risk level.
 4. **Detect ghost entries** by checking each grant's `client` against the installed-apps map. If no match: the grant is for an app that's no longer present.
 5. **Render the HTML report** using Jinja2 against `template.html`. The output is fully self-contained — inline CSS, no JavaScript, no external assets — so it can be opened in any browser, emailed to yourself, or saved as a PDF.
-
-## Install and run
-
-```bash
-# Clone
-git clone https://github.com/LunaParker/macos-permission-report.git
-cd macos-permission-report
-
-# Set up a virtual environment (recommended)
-python3 -m venv venv
-source venv/bin/activate
-
-# Install the one dependency
-pip install -r requirements.txt
-
-# Run
-python generate_report.py
-```
-
-By default the report is written to `~/Downloads/privacy_audit.html`. Override with `--output`:
-
-```bash
-python generate_report.py --output ./report.html
-```
-
-Then open the file in your browser:
-
-```bash
-open ~/Downloads/privacy_audit.html
-```
 
 ## Caveats
 
