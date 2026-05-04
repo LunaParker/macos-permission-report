@@ -102,6 +102,15 @@ open ~/Downloads/privacy_audit.html
 
 PRs welcome on any of the above.
 
+## Contributing
+
+The classifier is driven by two curated dictionaries near the top of `generate_report.py`:
+
+- **`ASSESSMENTS`** — maps known app bundle IDs to per-permission assessments (`Expected` / `Review` / `Invasive`) plus a one-line tooltip explaining *why*. Use `_default` for an app-level fallback when a single rule covers most permissions, or per-service keys (e.g. `kTCCServiceSystemPolicyAllFiles`) when a single app legitimately holds some permissions but should raise eyebrows for others.
+- **`INVASIVE_APPS`** — apps that are invasive *by design* (exam proctoring, employee monitoring, stealth keyloggers). Entries here also drive the red alert banner at the top of the report.
+
+If you find an app the report mis-classifies — most often, an unknown app showing up as `Review` simply because its bundle ID isn't in `ASSESSMENTS` yet — that's exactly the gap to fill. PRs welcome. Keep the reason text short, concrete, and honest about *why* the permission is or isn't justified for that app's category.
+
 ## License
 
 [MIT](LICENSE.md) — Luna Parker

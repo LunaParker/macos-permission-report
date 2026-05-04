@@ -339,6 +339,10 @@ ASSESSMENTS: dict[str, dict] = {
         "kTCCServiceMicrophone": ("ok", "Records microphone audio during screen recordings when the user enables it."),
         "_default": ("ok", "CleanShot X is a screenshot/recording utility; these permissions are core functionality."),
     },
+    "com.obsproject.obs-studio": {
+        "_name": "OBS Studio",
+        "_default": ("ok", "Open-source video recorder and live streamer. Camera, microphone, and screen capture are its entire purpose."),
+    },
 
     # ── Browsers ──────────────────────────────────────────────────────
     "com.brave.Browser": {
@@ -353,6 +357,17 @@ ASSESSMENTS: dict[str, dict] = {
     "dev.vencord.vesktop": {
         "kTCCServiceAppleEvents": ("ok", "Controls the Music app to show 'Now Playing' as Discord Rich Presence status."),
         "_default": ("ok", "Discord client. Camera, mic, and screen sharing are used for voice/video calls."),
+    },
+    "us.zoom.xos": {
+        "_name": "Zoom",
+        "kTCCServiceCamera": ("ok", "Video meetings — the headline feature."),
+        "kTCCServiceMicrophone": ("ok", "Voice for meetings."),
+        "kTCCServiceScreenCapture": ("ok", "Screen-share during meetings."),
+        "kTCCServiceSystemPolicyAllFiles": (
+            "moderate",
+            "Zoom does not need Full Disk Access to function. If granted, revoke.",
+        ),
+        "_default": ("ok", "Video-conferencing app. Camera, mic, and screen sharing are core features."),
     },
 
     # ── AI assistants ─────────────────────────────────────────────────
@@ -453,6 +468,36 @@ ASSESSMENTS: dict[str, dict] = {
         "_default": ("ok", "FTP/SFTP client. Folder access is needed to upload and download files."),
     },
 
+    # ── Remote access ─────────────────────────────────────────────────
+    "com.teamviewer.TeamViewer": {
+        "_default": (
+            "ok",
+            "Remote-control software. Accessibility, Screen Recording, Input Monitoring, "
+            "and Full Disk Access are required for remote control to function — but these "
+            "permissions should be revoked when the app is not in active use.",
+        ),
+    },
+    "com.philandro.anydesk": {
+        "_name": "AnyDesk",
+        "_default": ("ok", "Same remote-control profile as TeamViewer; revoke permissions when not in active use."),
+    },
+    "com.carriez.rustdesk": {
+        "_name": "RustDesk",
+        "_default": ("ok", "Open-source remote-control alternative. Same permission profile as TeamViewer."),
+    },
+
+    # ── VPN ───────────────────────────────────────────────────────────
+    "com.nordvpn.NordVPN": {
+        "_default": ("ok", "VPN client. System-level networking permissions are required to install the network extension."),
+    },
+
+    # ── Password managers ─────────────────────────────────────────────
+    "com.1password.1password": {
+        "_name": "1Password",
+        "kTCCServiceAccessibility": ("ok", "Auto-fill across native macOS apps requires Accessibility to detect form fields."),
+        "_default": ("ok", "Password manager. Accessibility for autofill is its primary integration point on macOS."),
+    },
+
     # ── Exam proctoring — handled by INVASIVE_APPS ────────────────────
     # com.Respondus.LockDownBrowser is defined in INVASIVE_APPS above.
 }
@@ -460,10 +505,8 @@ ASSESSMENTS: dict[str, dict] = {
 # Human-friendly names for uninstalled (ghost) apps whose bundle IDs
 # would otherwise resolve to unhelpful fragments like "cp-dev-mgr".
 GHOST_NAMES: dict[str, str] = {
-    "com.obsproject.obs-studio": "OBS Studio",
     "com.logi.cp-dev-mgr": "Logi CP Dev Manager",
     "com.logi.optionsplus": "Logi Options+",
-    "com.philandro.anydesk": "AnyDesk",
     "com.surteesstudios.Bartender": "Bartender",
     "com.hnc.Discord": "Discord",
     "com.sindresorhus.Command-X": "Command X",
@@ -472,19 +515,14 @@ GHOST_NAMES: dict[str, str] = {
     "com.pilotmoon.scroll-reverser": "Scroll Reverser",
     "net.matthewpalmer.Rocket": "Rocket",
     "dk.FIrstForm.DockFix": "DockFix",
-    "com.1password.1password": "1Password",
     "com.davidbures.cork": "Cork",
     "com.luna.obsidianopener": "Obsidian Opener",
     "com.jetbrains.CLion": "CLion",
     "com.jetbrains.rider": "Rider",
     "com.reincubate.macos.cam": "Camo",
-    "com.carriez.rustdesk": "RustDesk",
     "com.google.drivefs": "Google Drive",
     "com.google.Chrome": "Google Chrome",
-    "com.teamviewer.TeamViewer": "TeamViewer",
-    "us.zoom.xos": "Zoom",
     "com.BZG.unite": "Unite",
-    "com.nordvpn.NordVPN": "NordVPN",
     "com.adobe.PremierePro.25": "Adobe Premiere Pro",
     "org.mozilla.thunderbird": "Thunderbird",
     "codes.rambo.AirBuddyHelper": "AirBuddy Helper",
