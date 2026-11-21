@@ -2,13 +2,13 @@
 
 A small Python tool that walks the macOS TCC (Transparency, Consent, and Control) databases, identifies which apps hold dangerous privacy permissions, flags ghost entries left behind by uninstalled apps, and renders a self-contained HTML report you can read in any browser.
 
-Built with Python 3 and Jinja2. No daemon, no GUI; one script, one HTML output.
+Built with Python 3 and Jinja2, it's a single script with no daemon or GUI, and it writes one HTML file.
 
 ![Screenshot of the generated HTML report showing several dangerous-permission categories (Full Disk Access, Accessibility, Screen Recording), each with the apps that currently hold the grant and a per-category threat description.](docs/screenshot.png)
 
 ## What it does
 
-macOS gates access to sensitive resources (camera, mic, files, screen recording, accessibility automation, etc.) through TCC. Every grant, and every *prior* grant for an app that has since been uninstalled, sits in one of two SQLite databases on disk. macOS's Settings UI shows you the surface; this tool reads the databases directly and surfaces:
+macOS gates access to sensitive resources (camera, mic, files, screen recording, accessibility automation, etc.) through TCC. Every grant, and every *prior* grant for an app that has since been uninstalled, sits in one of two SQLite databases on disk. System Settings shows only part of this; the tool reads the databases directly and reports:
 
 - **Critical permissions:** Full Disk Access, Accessibility, Screen Recording, Input Monitoring.
 - **High-risk permissions:** Camera, Microphone.
@@ -96,7 +96,6 @@ The key table in each database is `access`. The columns this tool reads are:
 
 ## What's not (yet) covered
 
-- Network connection grants (`kTCCServiceListenEvent`, `kTCCServicePostEvent`) are decoded as Automation indirectly but not surfaced as a top-level Network section.
 - Sandbox container access patterns (App Sandbox / Group Containers).
 - TCC reset history (`tccutil reset` events): TCC doesn't keep an audit log of revocations, so neither does this tool.
 
@@ -109,7 +108,7 @@ The classifier is driven by two curated dictionaries near the top of `generate_r
 - **`ASSESSMENTS`**: maps known app bundle IDs to per-permission assessments (`Expected` / `Review` / `Invasive`) plus a one-line tooltip explaining *why*. Use `_default` for an app-level fallback when a single rule covers most permissions, or per-service keys (e.g. `kTCCServiceSystemPolicyAllFiles`) when a single app legitimately holds some permissions but should raise eyebrows for others.
 - **`INVASIVE_APPS`**: apps that are invasive *by design* (exam proctoring, employee monitoring, stealth keyloggers). Entries here also drive the red alert banner at the top of the report.
 
-If you find an app the report mis-classifies (most often, an unknown app showing up as `Review` simply because its bundle ID isn't in `ASSESSMENTS` yet), that's exactly the gap to fill. PRs welcome. Keep the reason text short, concrete, and honest about *why* the permission is or isn't justified for that app's category.
+If you find an app the report mis-classifies (most often, an unknown app showing up as `Review` simply because its bundle ID isn't in `ASSESSMENTS` yet), that's exactly the gap to fill. Keep the reason text short, concrete, and honest about *why* the permission is or isn't justified for that app's category.
 
 ## License
 
